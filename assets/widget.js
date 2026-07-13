@@ -463,9 +463,13 @@
                     }
                   } else if (data.type === "record_added" && data.record) {
                     if (viewMode === "current") {
-                      currentRecords.push(data.record);
-                      if (currentRecords.length > 200) currentRecords = currentRecords.slice(-200);
-                      render();
+                      // 只收本轮记录
+                      const recTurn = data.record.turnId || 1;
+                      if (recTurn === currentTurnId) {
+                        currentRecords.push(data.record);
+                        if (currentRecords.length > 200) currentRecords = currentRecords.slice(-200);
+                        render();
+                      }
                     }
                     // 全部模式下也更新缓存
                     if (viewMode === "all") {
