@@ -53,9 +53,8 @@ export default class AgentOpsMonitorPlugin {
             return;
           }
 
-          // ── 轮次切换 ──
-          // agent_end 表示 Agent 完成本轮回复，下一轮开始
-          if (type === "agent_end" && activeSessionPath) {
+          // ── 轮次切换：用户发新消息时开新轮 ──
+          if (type === "session_user_message") {
             recorder.nextTurn();
           }
 
