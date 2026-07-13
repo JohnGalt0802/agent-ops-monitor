@@ -1,4 +1,4 @@
-// widget.js — Agent 操作面板前端逻辑
+// widget.js — Agent 操作面板前端逻辑 v2.0（按轮次分组）
 (function () {
   "use strict";
 
@@ -17,7 +17,10 @@
   }
 
   // ── 状态 ──
-  let records = [];
+  let viewMode = "current";    // "current" | "all"
+  let currentRecords = [];     // 仅本轮（mode=current）
+  let allTurns = [];           // 全部 turn（mode=all）
+  let currentTurnId = 1;
   let expandedIds = new Set();
   let sseSource = null;
 
@@ -29,9 +32,11 @@
   function buildUI() {
     app.innerHTML = `
       <div class="toolbar" id="toolbar">
+        <button id="btn-current" class="active" title="仅显示本轮">● 本轮</button>
+        <button id="btn-all" title="显示全部轮次">◎ 全部</button>
+        <span class="spacer"></span>
         <button id="btn-expand-all" title="全部展开">▤ 展开</button>
         <button id="btn-collapse-all" title="全部折叠">▢ 折叠</button>
-        <span class="spacer"></span>
         <button id="btn-clear" title="清空记录">✕ 清空</button>
         <button id="btn-refresh" title="刷新活跃会话记录">↻ 刷新</button>
       </div>
@@ -42,36 +47,136 @@
       </div>
     `;
 
+    document.getElementById("btn-current").onclick = () => switchMode("current");
+    document.getElementById("btn-all").onclick = () => switchMode("all");
     document.getElementById("btn-expand-all").onclick = expandAll;
     document.getElementById("btn-collapse-all").onclick = collapseAll;
     document.getElementById("btn-clear").onclick = clearRecords;
     document.getElementById("btn-refresh").onclick = refreshRecords;
   }
 
-  // ── 渲染记录列表 ──
-  function renderRecords() {
+  function updateModeButtons() {
+    const btnCur = document.getElementById("btn-current");
+    const btnAll = document.getElementById("btn-all");
+    if (!btnCur || !btnAll) return;
+    btnCur.classList.toggle("active", viewMode === "current");
+    btnAll.classList.toggle("active", viewMode === "all");
+  }
+
+  // ── 切换视图 ──
+  function switchMode(mode) {
+    viewMode = mode;
+    updateModeButtons();
+    loadRecords(mode);
+  }
+
+  // ── 加载记录 ──
+  async function loadRecords(mode) {
+    setStatus("加载中...");
+    try {
+      const data = await apiFetch(`/api/records?mode=${mode}`);
+      currentTurnId = data.currentTurnId || currentTurnId;
+      if (mode === "all") {
+        allTurns = data.turns || [];
+        currentRecords = [];
+      } else {
+        currentRecords = data.records || [];
+        allTurns = [];
+      }
+      render();
+    } catch (err) {
+      setStatus("加载失败");
+    }
+  }
+
+  // ── 渲染 ──
+  function render() {
     const list = document.getElementById("records-list");
     const countEl = document.getElementById("status-count");
     if (!list) return;
 
-    if (records.length === 0) {
+    if (viewMode === "current") {
+      currentRecords.sort((a, b) => a.timestamp - b.timestamp);
       list.innerHTML = "";
-      if (countEl) countEl.textContent = "0 条记录";
-      return;
+      if (currentRecords.length === 0) {
+        list.innerHTML = '<div class="turn-empty">本轮暂无操作</div>';
+      }
+      const frag = document.createDocumentFragment();
+      for (const rec of currentRecords) {
+        frag.appendChild(createRecordCard(rec));
+      }
+      list.appendChild(frag);
+      if (countEl) countEl.textContent = `本轮 ${currentRecords.length} 条`;
+      setStatus("就绪 · v2.0（本轮）");
+    } else {
+      list.innerHTML = "";
+      if (allTurns.length === 0) {
+        list.innerHTML = '<div class="turn-empty">暂无记录</div>';
+        if (countEl) countEl.textContent = "0 条记录";
+        return;
+      }
+      const frag = document.createDocumentFragment();
+      for (const turn of allTurns) {
+        frag.appendChild(createTurnGroup(turn));
+      }
+      list.appendChild(frag);
+      let total = 0;
+      for (const t of allTurns) total += t.records.length;
+      if (countEl) countEl.textContent = `${allTurns.length} 轮 ${total} 条`;
+      setStatus("就绪 · v2.0（全部）");
+    }
+  }
+
+  // ── 创建轮次组 ──
+  function createTurnGroup(turn) {
+    const group = document.createElement("div");
+    group.className = `turn-group${turn.archived ? " archived" : " current"}`;
+    group.dataset.turnId = turn.id;
+
+    // 头部
+    const header = document.createElement("div");
+    header.className = "turn-header";
+    header.onclick = () => toggleTurnGroup(group);
+
+    const time = new Date(turn.firstTimestamp).toLocaleTimeString("zh-CN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    });
+    const endTime = turn.lastTimestamp !== turn.firstTimestamp
+      ? " → " + new Date(turn.lastTimestamp).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+      : "";
+
+    header.innerHTML = `
+      <span class="turn-expand">▶</span>
+      <span class="turn-label">${turn.archived ? "📋" : "📝"} 第 ${turn.id} 轮</span>
+      <span class="turn-time">${time}${endTime}</span>
+      <span class="turn-count">${turn.records.length} 次操作</span>
+      ${turn.archived ? '<span class="turn-badge">归档</span>' : '<span class="turn-badge live">进行中</span>'}
+    `;
+
+    group.appendChild(header);
+
+    // 内容区
+    const body = document.createElement("div");
+    body.className = "turn-body";
+    // 本轮默认展开，归档默认折叠
+    if (!turn.archived) body.classList.add("open");
+
+    turn.records.sort((a, b) => a.timestamp - b.timestamp);
+    for (const rec of turn.records) {
+      body.appendChild(createRecordCard(rec));
     }
 
-    // 用 DocumentFragment 减少重排
-    const frag = document.createDocumentFragment();
+    group.appendChild(body);
+    return group;
+  }
 
-    for (const rec of records) {
-      const card = createRecordCard(rec);
-      frag.appendChild(card);
-    }
-
-    list.innerHTML = "";
-    list.appendChild(frag);
-
-    if (countEl) countEl.textContent = `${records.length} 条记录`;
+  function toggleTurnGroup(group) {
+    const body = group.querySelector(".turn-body");
+    const arrow = group.querySelector(".turn-expand");
+    if (body) body.classList.toggle("open");
+    if (arrow) arrow.classList.toggle("open");
   }
 
   // ── 创建记录卡片 ──
@@ -85,7 +190,10 @@
     // 头部
     const header = document.createElement("div");
     header.className = "card-header";
-    header.onclick = () => toggleCard(rec.id);
+    header.onclick = (e) => {
+      e.stopPropagation();
+      toggleCard(rec.id);
+    };
 
     const iconMap = {
       exec_command: { cls: "cmd", symbol: ">" },
@@ -200,7 +308,6 @@
     const oldLines = oldText.split("\n");
     const newLines = newText.split("\n");
 
-    // 使用简单的逐行对比（适合编辑场景，通常改动范围小）
     const result = [];
     const lcs = computeLCS(oldLines, newLines);
 
@@ -223,7 +330,6 @@
         result.push(`<div class="diff-line added">+ ${escapeHtml(newLines[ni])}</div>`);
         ni++;
       } else {
-        // fallback
         if (oi < oldLines.length) { result.push(`<div class="diff-line removed">- ${escapeHtml(oldLines[oi])}</div>`); oi++; }
         if (ni < newLines.length) { result.push(`<div class="diff-line added">+ ${escapeHtml(newLines[ni])}</div>`); ni++; }
       }
@@ -272,22 +378,27 @@
   }
 
   function expandAll() {
-    expandedIds = new Set(records.map(r => r.id));
-    renderRecords();
+    // 收集所有可见卡片 id
+    const allIds = viewMode === "current"
+      ? currentRecords.map(r => r.id)
+      : allTurns.flatMap(t => t.records.map(r => r.id));
+    expandedIds = new Set(allIds);
+    render();
   }
 
   function collapseAll() {
     expandedIds.clear();
-    renderRecords();
+    render();
   }
 
   // ── 清空 ──
   async function clearRecords() {
     try {
       await apiFetch("/api/clear", { method: "POST" });
-      records = [];
+      currentRecords = [];
+      allTurns = [];
       expandedIds.clear();
-      renderRecords();
+      render();
       setStatus("已清空");
     } catch (err) {
       setStatus("清空失败: " + err.message);
@@ -298,14 +409,8 @@
   async function refreshRecords() {
     setStatus("刷新中...");
     try {
-      const data = await apiFetch("/api/refresh", { method: "POST" });
-      if (data.ok) {
-        records = data.records || [];
-        renderRecords();
-        setStatus(`已刷新，新增 ${data.newCount || 0} 条`);
-      } else {
-        setStatus("刷新失败: " + (data.error || "未知错误"));
-      }
+      await apiFetch("/api/refresh", { method: "POST" });
+      await loadRecords(viewMode);
     } catch (err) {
       setStatus("刷新失败: " + err.message);
     }
@@ -321,7 +426,6 @@
     const url = `/api/plugins/${PLUGIN_ID}/api/events`;
     const headers = TOKEN ? { Authorization: "Bearer " + TOKEN } : {};
 
-    // 用 fetch + ReadableStream 实现 SSE
     fetch(url, { headers })
       .then((res) => {
         if (!res.ok || !res.body) {
@@ -350,21 +454,51 @@
               if (line.startsWith("data: ")) {
                 try {
                   const data = JSON.parse(line.slice(6));
-                  if (data.type === "record_added" && data.record) {
-                    records.push(data.record);
-                    if (records.length > 200) records = records.slice(-200);
-                    renderRecords();
+
+                  if (data.type === "turn_changed") {
+                    currentTurnId = data.turnId;
+                    // 本轮模式下重新加载
+                    if (viewMode === "current") {
+                      loadRecords("current");
+                    }
+                  } else if (data.type === "record_added" && data.record) {
+                    if (viewMode === "current") {
+                      currentRecords.push(data.record);
+                      if (currentRecords.length > 200) currentRecords = currentRecords.slice(-200);
+                      render();
+                    }
+                    // 全部模式下也更新缓存
+                    if (viewMode === "all") {
+                      const rec = data.record;
+                      const tid = rec.turnId || currentTurnId;
+                      let turn = allTurns.find(t => t.id === tid);
+                      if (!turn) {
+                        turn = {
+                          id: tid,
+                          records: [],
+                          archived: tid < currentTurnId,
+                          firstTimestamp: rec.timestamp,
+                          lastTimestamp: rec.timestamp,
+                        };
+                        allTurns.push(turn);
+                        allTurns.sort((a, b) => b.id - a.id);
+                      }
+                      turn.records.push(rec);
+                      render();
+                    }
                   } else if (data.type === "record_updated" && data.record) {
-                    // 更新 pending 记录的状态（running → success/error）
-                    const idx = records.findIndex(r => r.id === data.record.id);
+                    // 更新 pending 记录的状态
+                    const updateIn = viewMode === "current" ? currentRecords : (allTurns.flatMap(t => t.records));
+                    const idx = updateIn.findIndex(r => r.id === data.record.id);
                     if (idx >= 0) {
-                      records[idx] = data.record;
-                      renderRecords();
+                      updateIn[idx] = data.record;
+                      render();
                     }
                   } else if (data.type === "records_cleared") {
-                    records = [];
+                    currentRecords = [];
+                    allTurns = [];
                     expandedIds.clear();
-                    renderRecords();
+                    render();
                   }
                 } catch {}
               }
@@ -401,21 +535,9 @@
   // ── 启动 ──
   function init() {
     buildUI();
-    // 初次加载记录
-    apiFetch("/api/records")
-      .then((data) => {
-        records = data.records || [];
-        renderRecords();
-        setStatus("就绪 · v3");
-      })
-      .catch(() => {
-        setStatus("加载失败，请刷新");
-      });
-
-    // 连接 SSE
+    loadRecords("current");
     connectSSE();
 
-    // 发送 ready 信号给父窗口
     try {
       window.parent.postMessage({ source: "hana-plugin", type: "ready" }, "*");
     } catch {}

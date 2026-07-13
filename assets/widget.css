@@ -115,3 +115,55 @@ html, body {
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
 
+/* ── 工具栏模式按钮 ── */
+.toolbar button.active {
+  background: rgba(69,183,125,0.20);
+  border-color: rgba(69,183,125,0.5);
+  color: #45b77d;
+}
+
+/* ── 轮次分组 ── */
+.turn-group {
+  margin-bottom: 10px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.10);
+}
+.turn-group.current { border-color: rgba(69,183,125,0.25); }
+.turn-group.archived { opacity: 0.92; }
+
+.turn-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px;
+  background: rgba(255,255,255,0.03);
+  cursor: pointer; user-select: none;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  font-size: 13px; font-weight: 600;
+}
+.turn-group.current .turn-header { background: rgba(69,183,125,0.06); }
+.turn-header:hover { background: rgba(255,255,255,0.06); }
+
+.turn-expand {
+  font-size: 10px; color: #a8a8a8; transition: transform .2s;
+  width: 12px; flex-shrink: 0; text-align: center;
+}
+.turn-expand.open { transform: rotate(90deg); }
+
+.turn-label { color: #e1e1e1; flex-shrink: 0; }
+.turn-time { color: #a8a8a8; font-size: 12px; font-weight: 400; white-space: nowrap; }
+.turn-count { color: #b5b5b5; font-size: 12px; font-weight: 400; margin-left: auto; }
+.turn-badge {
+  font-size: 10px; font-weight: 800; padding: 1px 6px; border-radius: 3px;
+  background: rgba(255,255,255,0.08); color: #888; flex-shrink: 0;
+}
+.turn-badge.live {
+  background: rgba(69,183,125,0.15); color: #45b77d;
+}
+
+.turn-body { display: none; }
+.turn-body.open { display: block; padding: 6px; }
+
+.turn-empty {
+  text-align: center; color: #888; padding: 28px 0; font-size: 13px;
+}
+

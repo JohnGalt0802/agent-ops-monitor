@@ -53,6 +53,12 @@ export default class AgentOpsMonitorPlugin {
             return;
           }
 
+          // ── 轮次切换 ──
+          // agent_end 表示 Agent 完成本轮回复，下一轮开始
+          if (type === "agent_end" && activeSessionPath) {
+            recorder.nextTurn();
+          }
+
           // ── JSONL 扫描触发（fallback） ──
           const relevant = [
             "agent_end",

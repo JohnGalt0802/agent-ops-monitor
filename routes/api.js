@@ -5,11 +5,28 @@ export default function registerRoutes(app, ctx) {
   // Widget 页面
   app.get("/widget", (c) => c.html(renderWidgetShell(c, ctx)));
 
-  // 获取所有记录
+  // 获取记录（支持 mode: "current" | "all"）
   app.get("/api/records", (c) => {
     const recorder = ctx._agentOpsRecorder;
-    if (!recorder) return c.json({ records: [], error: "recorder not ready" }, 503);
-    return c.json({ records: recorder.getAll() });
+    if (!recorder) return c.json({ error: "recorder not ready" }, 503);
+
+    const mode = c.req.query("mode") || "current";
+
+    if (mode === "all") {
+      const turns = recorder.getTurns();
+      return c.json({ turns, mode: "all", currentTurnId: recorder.currentTurnId });
+    }
+
+    // 默认 current：只返回本轮记录
+    const records = recorder.getCurrentTurnRecords();
+    return c.json({ turns: null, records, mode: "current", currentTurnId: recorder.currentTurnId });
+  });
+
+  // 获取全部 turn（已废弃，保留兼容）
+  app.get("/api/turns", (c) => {
+    const recorder = ctx._agentOpsRecorder;
+    if (!recorder) return c.json({ error: "recorder not ready" }, 503);
+    return c.json({ turns: recorder.getTurns(), currentTurnId: recorder.currentTurnId });
   });
 
   // 清空记录
@@ -27,11 +44,16 @@ export default function registerRoutes(app, ctx) {
 
     const sessionPath = recorder._activeSessionPath;
     if (!sessionPath) {
-      return c.json({ ok: false, error: "no active session", records: recorder.getAll() });
+      return c.json({ ok: false, error: "no active session" });
     }
 
     const newRecords = recorder.fullScan(sessionPath);
-    return c.json({ ok: true, sessionPath, newCount: newRecords.length, records: recorder.getAll() });
+    return c.json({
+      ok: true,
+      sessionPath,
+      newCount: newRecords.length,
+      currentTurnId: recorder.currentTurnId,
+    });
   });
 
   // SSE 实时推送
