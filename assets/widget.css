@@ -1,0 +1,117 @@
+/* widget.css — 默认暗色 */
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans SC", sans-serif;
+  font-size: 15px;
+  color: #e1e1e1;
+  background: transparent;
+}
+
+#app { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+
+/* ── 工具栏 ── */
+.toolbar {
+  display: flex; gap: 5px; padding: 8px 10px;
+  background: rgba(255,255,255,0.04); border-bottom: 1px solid rgba(255,255,255,0.1);
+  flex-shrink: 0; flex-wrap: wrap;
+}
+.toolbar button {
+  padding: 5px 12px; border: 1px solid rgba(255,255,255,0.18); border-radius: 5px;
+  background: rgba(255,255,255,0.06); cursor: pointer; font-size: 13px;
+  color: #d0d0d0; font-weight: 600; white-space: nowrap;
+}
+.toolbar button:hover { background: rgba(255,255,255,0.12); }
+.toolbar .spacer { flex: 1; }
+
+/* ── 记录列表 ── */
+.records-list { flex: 1; overflow-y: auto; padding: 8px; min-height: 0; }
+.records-list:empty::after { content: "暂无操作记录"; display: block; text-align: center; color: #888; padding: 28px 0; font-size: 13px; }
+
+/* ── 卡片 ── */
+.record-card {
+  margin-bottom: 8px; border-radius: 6px; border: 1.5px solid rgba(255,255,255,0.12);
+  overflow: hidden; max-height: 33vh;
+}
+.record-card:last-child { margin-bottom: 0; }
+.record-card.status-success { border-left: 4px solid #45b77d; background: rgba(69,183,125,0.12); }
+.record-card.status-error   { border-left: 4px solid #e74c3c; background: rgba(231,76,60,0.12); }
+.record-card.status-running { border-left: 4px solid #38a56a; background: rgba(56,165,106,0.14); animation: pulse-border 1.2s ease-in-out infinite; }
+@keyframes pulse-border { 0%,100%{border-left-color:#38a56a}50%{border-left-color:#45b77d} }
+
+/* 卡片头部：箭头 → 图标 → 类型 → 摘要 → 状态点 */
+.card-header { display: flex; align-items: center; gap: 8px; padding: 8px 10px; cursor: pointer; user-select: none; min-height: 32px; }
+.card-header:hover { background: rgba(255,255,255,0.04); }
+.card-expand { flex-shrink: 0; font-size: 12px; color: #a8a8a8; transition: transform .2s; width: 14px; text-align: center; order: -1; }
+.card-expand.expanded { transform: rotate(90deg); }
+.card-icon { flex-shrink: 0; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+.card-icon.cmd { color: #5b9bd5; } .card-icon.edit { color: #e89a3a; } .card-icon.write { color: #45b77d; }
+.card-type { flex-shrink: 0; font-size: 11px; font-weight: 800; text-transform: uppercase; padding: 2px 6px; border-radius: 3px; background: rgba(255,255,255,0.1); color: #c4c4c4; }
+.card-summary { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; color: #e1e1e1; font-weight: 600; min-width: 0; }
+.card-status-dot { flex-shrink: 0; width: 8px; height: 8px; border-radius: 50%; }
+.card-status-dot.success { background: #45b77d; } .card-status-dot.error { background: #e74c3c; }
+.card-status-dot.running { background: #38a56a; animation: pulse-dot 1.2s ease-in-out infinite; }
+@keyframes pulse-dot { 0%,100%{opacity:1}50%{opacity:.25} }
+
+/* 卡片详情 */
+.card-detail { display: none; border-top: 1px solid rgba(255,255,255,0.1); max-height: 30vh; overflow-y: auto; font-size: 14px; }
+.card-detail.open { display: block; }
+
+/* ── 命令详情 ── */
+.cmd-block { padding: 10px; }
+.cmd-label { font-size: 11px; font-weight: 800; color: #b5b5b5; margin-bottom: 4px; text-transform: uppercase; letter-spacing: .5px; }
+.cmd-command {
+  background: #243544; border-radius: 5px; padding: 8px 10px;
+  font-family: "JetBrains Mono","Cascadia Code","Consolas",monospace; font-size: 13px;
+  overflow-x: auto; white-space: pre-wrap; word-break: break-all; margin-bottom: 8px;
+  color: #e1e1e1; line-height: 1.5;
+}
+.cmd-output {
+  background: #243544; border-radius: 5px; padding: 8px 10px;
+  font-family: "JetBrains Mono","Cascadia Code","Consolas",monospace; font-size: 13px;
+  max-height: 15vh; overflow-y: auto; white-space: pre-wrap; word-break: break-all;
+  color: #d0d0d0; line-height: 1.5;
+}
+.cmd-output.error-output { color: #ff6b6b; font-weight: 600; }
+.cmd-exit { margin-top: 6px; font-size: 13px; color: #b5b5b5; }
+.cmd-exit code { font-weight: 800; color: #d0d0d0; }
+
+/* ── diff ── */
+.diff-block { padding: 10px; }
+.diff-file { font-size: 13px; font-weight: 800; color: #d0d0d0; margin-bottom: 6px; word-break: break-all; }
+.diff-content {
+  font-family: "JetBrains Mono","Cascadia Code","Consolas",monospace; font-size: 13px;
+  line-height: 1.6; border-radius: 5px; overflow: hidden; border: 1px solid rgba(255,255,255,0.12);
+  background: #243544;
+}
+.diff-line { padding: 2px 10px; white-space: pre-wrap; word-break: break-all; min-height: 20px; }
+.diff-line.added   { background: rgba(69,183,125,0.25); color: #45b77d; font-weight: 700; }
+.diff-line.removed { background: rgba(231,76,60,0.25); color: #ff6b6b; font-weight: 700; }
+.diff-line.unchanged { background: #243544; color: #b5b5b5; }
+
+/* ── 文件写入 ── */
+.write-block { padding: 10px; }
+.write-file { font-size: 13px; font-weight: 800; color: #d0d0d0; margin-bottom: 6px; word-break: break-all; }
+.write-content {
+  background: #243544; border-radius: 5px; padding: 8px 10px;
+  font-family: "JetBrains Mono","Cascadia Code","Consolas",monospace; font-size: 13px;
+  max-height: 15vh; overflow-y: auto; white-space: pre-wrap; word-break: break-all;
+  color: #d0d0d0; line-height: 1.5;
+}
+
+/* ── 状态栏 ── */
+.status-bar {
+  padding: 6px 10px; font-size: 12px; color: #a8a8a8;
+  border-top: 1px solid rgba(255,255,255,0.08); background: rgba(69,183,125,0.08);
+  flex-shrink: 0; display: flex; justify-content: space-between;
+}
+
+/* ── 滚动条 ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #1a2430; border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
+

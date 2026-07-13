@@ -1,0 +1,26 @@
+{
+  "manifestVersion": 1,
+  "id": "agent-ops-monitor",
+  "name": "Agent 操作面板",
+  "version": "0.1.0",
+  "description": "Agent 后台命令与代码改动可视化侧边栏，时间线展示，支持折叠展开与红绿 diff。",
+  "minAppVersion": "0.170.0",
+  "trust": "full-access",
+  "permissions": ["session.read"],
+  "activationEvents": ["onStartup", "onWidgetOpen"],
+  "ui": {
+    "hostCapabilities": ["clipboard.writeText"]
+  },
+  "contributes": {
+    "routes": true,
+    "lifecycle": true,
+    "widget": {
+      "title": {
+        "zh": "Agent 操作面板",
+        "en": "Agent Ops Monitor"
+      },
+      "route": "/widget",
+      "icon": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"2\" y=\"3\" width=\"20\" height=\"14\" rx=\"2\"/><line x1=\"8\" y1=\"21\" x2=\"16\" y2=\"21\"/><line x1=\"12\" y1=\"17\" x2=\"12\" y2=\"21\"/></svg>"
+    }
+  }
+}
