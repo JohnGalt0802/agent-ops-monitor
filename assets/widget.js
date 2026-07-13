@@ -409,8 +409,21 @@
   async function refreshRecords() {
     setStatus("刷新中...");
     try {
-      await apiFetch("/api/refresh", { method: "POST" });
-      await loadRecords(viewMode);
+      const data = await apiFetch(`/api/refresh?mode=${viewMode}`, { method: "POST" });
+      if (!data.ok) {
+        setStatus("刷新失败: " + (data.error || "无活跃会话"));
+        return;
+      }
+      currentTurnId = data.currentTurnId || currentTurnId;
+      if (viewMode === "all") {
+        allTurns = data.turns || [];
+        currentRecords = [];
+      } else {
+        currentRecords = data.records || [];
+        allTurns = [];
+      }
+      render();
+      setStatus(`已刷新${data.newCount > 0 ? "，扫描 " + data.newCount + " 条" : ""}`);
     } catch (err) {
       setStatus("刷新失败: " + err.message);
     }

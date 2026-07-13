@@ -37,7 +37,7 @@ export default function registerRoutes(app, ctx) {
     return c.json({ ok: true });
   });
 
-  // 刷新：扫描活跃 session
+  // 刷新：扫描活跃 session，顺带返回当前视图数据避免二次请求竞态
   app.post("/api/refresh", (c) => {
     const recorder = ctx._agentOpsRecorder;
     if (!recorder) return c.json({ ok: false, error: "recorder not ready" }, 503);
@@ -48,12 +48,24 @@ export default function registerRoutes(app, ctx) {
     }
 
     const newRecords = recorder.fullScan(sessionPath);
-    return c.json({
+    const mode = c.req.query("mode") || "current";
+
+    const payload = {
       ok: true,
       sessionPath,
       newCount: newRecords.length,
       currentTurnId: recorder.currentTurnId,
-    });
+    };
+
+    if (mode === "all") {
+      payload.turns = recorder.getTurns();
+      payload.mode = "all";
+    } else {
+      payload.records = recorder.getCurrentTurnRecords();
+      payload.mode = "current";
+    }
+
+    return c.json(payload);
   });
 
   // SSE 实时推送
