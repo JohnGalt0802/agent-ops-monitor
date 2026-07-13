@@ -55,7 +55,8 @@ export default class AgentOpsMonitorPlugin {
 
           // ── 轮次切换：用户发新消息时开新轮 ──
           if (type === "session_user_message") {
-            recorder.nextTurn();
+            const promptText = event?.message || event?.content || event?.text || "";
+            recorder.nextTurn(promptText);
           }
 
           // ── JSONL 扫描触发（fallback） ──

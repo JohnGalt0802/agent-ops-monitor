@@ -159,6 +159,9 @@ html, body {
 .turn-badge.live {
   background: rgba(69,183,125,0.15); color: #45b77d;
 }
+.turn-badge.done {
+  background: rgba(160,160,160,0.12); color: #999;
+}
 
 .turn-body { display: none; }
 .turn-body.open { display: block; padding: 6px; }

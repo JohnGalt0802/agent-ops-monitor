@@ -147,12 +147,22 @@
       ? " → " + new Date(turn.lastTimestamp).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", second: "2-digit" })
       : "";
 
+    // 显示 prompt 前 40 字，截断加 ...
+    const promptText = turn.prompt || "";
+    const promptDisplay = promptText.length > 40
+      ? escapeHtml(promptText.slice(0, 40)) + "..."
+      : escapeHtml(promptText);
+
+    const badgeHtml = turn.archived
+      ? (turn.allDone ? '<span class="turn-badge done">已完成</span>' : '<span class="turn-badge">归档</span>')
+      : '<span class="turn-badge live">进行中</span>';
+
     header.innerHTML = `
       <span class="turn-expand">▶</span>
-      <span class="turn-label">${turn.archived ? "📋" : "📝"} 第 ${turn.id} 轮</span>
+      <span class="turn-label">${turn.archived ? "📋" : "📝"} ${promptDisplay || "第 " + turn.id + " 轮"}</span>
       <span class="turn-time">${time}${endTime}</span>
       <span class="turn-count">${turn.records.length} 次操作</span>
-      ${turn.archived ? '<span class="turn-badge">归档</span>' : '<span class="turn-badge live">进行中</span>'}
+      ${badgeHtml}
     `;
 
     group.appendChild(header);
